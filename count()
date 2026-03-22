@@ -1,0 +1,1 @@
+'Discovery Devices: ' . App\Models\Device::where('brand', 'Unknown')-, '-')-, '')-;

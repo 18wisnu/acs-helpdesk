@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        user: acsuser
+        uid: 1000
+    image: acs-helpdesk-app
+    container_name: acs-helpdesk-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    environment:
+      DB_HOST: db
+      DB_CONNECTION: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-helpdesk_acs}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+    networks:
+      - acs-network
+
+  db:
+    image: mysql:8.4
+    container_name: acs-helpdesk-db
+    restart: unless-stopped
+    ports:
+      - "33060:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-helpdesk_acs}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpass}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-}
+      MYSQL_USER: ${DB_USERNAME:-root}
+    volumes:
+      - acs-db-data:/var/lib/mysql
+    networks:
+      - acs-network
+
+  web:
+    image: nginx:alpine
+    container_name: acs-helpdesk-web
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./.docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - acs-network
+
+networks:
+  acs-network:
+    driver: bridge
+
+volumes:
+  acs-db-data:
+    driver: local
