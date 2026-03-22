@@ -15,7 +15,8 @@ RUN apk add --no-cache \
     oniguruma-dev \
     libzip-dev \
     libjpeg-turbo-dev \
-    freetype-dev
+    freetype-dev \
+    icu-dev
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
