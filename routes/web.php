@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HelpdeskController;
 use App\Http\Controllers\SiteController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
@@ -50,6 +51,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         // Update Site pada Device
         Route::post('/update-site', [HelpdeskController::class, 'updateSite'])->name('update-site');
+
+        // Manajemen User (Admin & Staff)
+        Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/', [UserController::class, 'index'])->name('index');
+            Route::post('/', [UserController::class, 'store'])->name('store');
+            Route::put('/{id}', [UserController::class, 'update'])->name('update');
+            Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+        });
     });
 
 // --- FITUR MANAJEMEN ODP (SPLITTER) ---

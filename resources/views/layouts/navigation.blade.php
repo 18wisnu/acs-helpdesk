@@ -31,6 +31,9 @@
                         <x-nav-link :href="route('helpdesk.map')" :active="request()->routeIs('helpdesk.map')" class="text-sm font-bold uppercase tracking-widest">
                             {{ __('Peta') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('helpdesk.users.index')" :active="request()->routeIs('helpdesk.users.index')" class="text-sm font-bold uppercase tracking-widest text-indigo-600">
+                            {{ __('Admin') }}
+                        </x-nav-link>
                     @else
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" class="text-sm font-bold uppercase tracking-widest">
                             {{ __('Status WiFi Anda') }}
