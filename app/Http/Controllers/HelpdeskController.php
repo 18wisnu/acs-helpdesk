@@ -457,6 +457,8 @@ class HelpdeskController extends Controller
                 'VirtualParameters.activedevices',
                 'InternetGatewayDevice.DeviceInfo.ModelName',
                 'InternetGatewayDevice.DeviceInfo.SerialNumber',
+                'Device.DeviceInfo.ModelName',
+                'Device.DeviceInfo.SerialNumber',
                 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID',
                 'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress',
             ]);
@@ -469,22 +471,30 @@ class HelpdeskController extends Controller
                     $ssid      = $this->getVP($device, 'WlanSSID', data_get($device, 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID._value', '-'));
                     $ipPppoe   = $this->getVP($device, 'IPPPPOE',  data_get($device, 'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress._value', '-'));
                     $ipTr069   = $this->getVP($device, 'IPTR069');
-                    $sn        = $this->getVPFirst($device, ['getSerialNumber', 'SerialNumber', 'SN'], data_get($device, 'InternetGatewayDevice.DeviceInfo.SerialNumber._value', '-'));
-                    $brand     = $this->getVP($device, 'Model',    data_get($device, 'InternetGatewayDevice.DeviceInfo.ModelName._value', 'Unknown'));
-                    $activeDev = $this->getVP($device, 'activedevices', '0');
                     
-                    $rxPower   = $this->getVPFirst($device, ['RXPower', 'Redaman', 'rxpower', 'Redaman_RX', 'rx_power']);
-
-                    // --- FILTER DISCOVERY (SANGAT KETAT) ---
-                    // Lewati jika SN/Brand kosong, "-", atau "Unknown" (case-insensitive)
-                    $isDiscovery = (
-                        !$sn || $sn === '-' || $sn === '' || 
-                        !$brand || strtolower($brand) === 'unknown'
-                    );
-
-                    if ($isDiscovery) {
-                        continue; 
+                    // --- CARI SN (Lebih Agresif) ---
+                    $sn = $this->getVPFirst($device, [
+                        'getSerialNumber', 'SerialNumber', 'SN', 
+                        'InternetGatewayDevice.DeviceInfo.SerialNumber',
+                        'Device.DeviceInfo.SerialNumber'
+                    ]);
+                    
+                    if ($sn === '-') {
+                        $sn = data_get($device, 'InternetGatewayDevice.DeviceInfo.SerialNumber._value')
+                           ?? data_get($device, 'Device.DeviceInfo.SerialNumber._value')
+                           ?? $device['_id']; // Gunakan ID GenieACS jika SN benar-benar tidak ada
                     }
+
+                    // --- CARI BRAND / MODEL ---
+                    $brand = $this->getVP($device, 'Model');
+                    if ($brand === '-') {
+                        $brand = data_get($device, 'InternetGatewayDevice.DeviceInfo.ModelName._value')
+                              ?? data_get($device, 'Device.DeviceInfo.ModelName._value')
+                              ?? 'Unknown Modem';
+                    }
+
+                    $activeDev = $this->getVP($device, 'activedevices', '0');
+                    $rxPower   = $this->getVPFirst($device, ['RXPower', 'Redaman', 'rxpower', 'Redaman_RX', 'rx_power']);
 
                     Device::updateOrCreate(
                         ['genieacs_id' => $device['_id']],
@@ -500,15 +510,8 @@ class HelpdeskController extends Controller
                     );
                     $count++;
                 }
-                // Auto-Cleanup: Pastikan database bersih dari discovery devices yang mungkin tersisa
-                Device::where('brand', 'Unknown')
-                    ->orWhere('sn', '-')
-                    ->orWhere('sn', '')
-                    ->orWhereNull('sn')
-                    ->orWhereNull('brand')
-                    ->delete();
 
-                return back()->with('success', "Sync Sukses! {$count} modem berhasil diperbarui. Discovery devices otomatis dibersihkan.");
+                return back()->with('success', "Sync Sukses! {$count} modem berhasil sinkron. Semua perangkat dari GenieACS kini sudah masuk daftar.");
             }
             return back()->with('error', 'Gagal mendapatkan respons dari GenieACS. Cek koneksi server.');
 
