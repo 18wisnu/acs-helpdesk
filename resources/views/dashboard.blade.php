@@ -93,7 +93,7 @@
                         Daftar Perangkat
                     </h3>
 
-                    @if(auth()->user()->role === 'admin')
+                    @if(auth()->user()->role !== 'client')
                     <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                         <form action="{{ route('helpdesk.cleanup-discovery') }}" method="POST">
                             @csrf
