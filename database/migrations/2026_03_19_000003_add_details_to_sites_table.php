@@ -8,14 +8,11 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * Kolom sudah dibuat di migrasi create_sites_table
      */
     public function up(): void
     {
-        Schema::table('sites', function (Blueprint $table) {
-            $table->string('ip_address')->nullable()->after('name');
-            $table->string('location')->nullable()->after('ip_address');
-            $table->string('business_name')->nullable()->after('location');
-        });
+        // Kosong karena kolom sudah ada di create_sites_table
     }
 
     /**
@@ -23,8 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('sites', function (Blueprint $table) {
-            $table->dropColumn(['ip_address', 'location', 'business_name']);
-        });
+        // Kosong
     }
 };

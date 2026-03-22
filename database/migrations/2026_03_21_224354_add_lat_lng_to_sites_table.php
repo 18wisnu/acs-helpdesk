@@ -8,13 +8,11 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * Kolom latitude/longitude sudah dibuat di create_sites_table
      */
     public function up(): void
     {
-        Schema::table('sites', function (Blueprint $table) {
-            $table->decimal('latitude', 10, 8)->nullable()->after('business_name');
-            $table->decimal('longitude', 11, 8)->nullable()->after('latitude');
-        });
+        // Kosong
     }
 
     /**
@@ -22,8 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('sites', function (Blueprint $table) {
-            $table->dropColumn(['latitude', 'longitude']);
-        });
+        // Kosong
     }
 };
