@@ -190,7 +190,7 @@
                     <button @click="isEditOpen = false" class="text-white/60 hover:text-white text-2xl leading-none">&times;</button>
                 </div>
                 <div class="p-8 overflow-y-auto">
-                    <form :action="`/helpdesk/odps/update/${selectedOdp.id}`" method="POST" class="space-y-5">
+                    <form :action="`/odps/update/${selectedOdp.id}`" method="POST" class="space-y-5">
                         @csrf @method('PUT')
                             <div>
                                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama ODP</label>
