@@ -28,6 +28,7 @@ class OdpController extends Controller
             'site_id'       => 'nullable|exists:sites,id',
             'parent_odp_id' => 'nullable|exists:odps,id',
             'capacity'      => 'required|integer|min:1',
+            'splitter_type' => 'nullable|string',
             'latitude'      => 'nullable|numeric',
             'longitude'     => 'nullable|numeric',
         ]);
@@ -47,6 +48,7 @@ class OdpController extends Controller
             'site_id'       => 'nullable|exists:sites,id',
             'parent_odp_id' => 'nullable|exists:odps,id',
             'capacity'      => 'required|integer|min:1',
+            'splitter_type' => 'nullable|string',
             'latitude'      => 'nullable|numeric',
             'longitude'     => 'nullable|numeric',
         ]);

@@ -152,6 +152,27 @@
             var devices = @json($devices);
             var allCoords = [];
 
+            // --- FUNGSI HITUNG REDAMAN ---
+            const LOSS_MAP = {
+                '1:2': 3.5,
+                '1:4': 7.2,
+                '1:8': 10.5,
+                '1:16': 13.8,
+                '1:32': 17.5
+            };
+
+            function getOdpLoss(odpId) {
+                let odp = odps.find(o => o.id == odpId);
+                if (!odp) return 0;
+                
+                let currentLoss = LOSS_MAP[odp.splitter_type] || 10.5;
+                
+                if (odp.parent_odp_id) {
+                    return currentLoss + getOdpLoss(odp.parent_odp_id);
+                }
+                return currentLoss;
+            }
+
             // 1. OLT Sites
             var siteMarkers = {};
             sites.forEach(site => {
@@ -171,10 +192,16 @@
                 L.marker([lat, lng], {icon: icon})
                     .addTo(map)
                     .bindTooltip(`OLT: ${site.name}`, {direction: 'top', offset: [0, -15]})
-                    .bindPopup(`<div class="p-3">
+                    .bindPopup(`<div class="p-4 min-w-[180px]">
                         <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-1">Central OLT</p>
-                        <h4 class="font-black text-slate-800 uppercase italic">${site.name}</h4>
-                        <p class="text-[11px] text-slate-500 mt-2">${site.location || 'Headend Site'}</p>
+                        <h4 class="font-black text-slate-800 uppercase italic border-b pb-2 mb-2">${site.name}</h4>
+                        <div class="space-y-2">
+                             <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">PON Out</span>
+                                <span class="text-sm font-black text-indigo-600">${site.pon_power || '4.00'} dBm</span>
+                             </div>
+                             <p class="text-[10px] text-slate-500 leading-relaxed italic">${site.location || 'Headend Site'}</p>
+                        </div>
                     </div>`);
             });
 
@@ -187,6 +214,12 @@
                 odpMarkers[odp.id] = [lat, lng];
                 allCoords.push([lat, lng]);
 
+                // Hitung Estimasi Redaman di ODP ini
+                let site = sites.find(s => s.id == odp.site_id);
+                let startPower = site ? parseFloat(site.pon_power || 4) : 4;
+                let totalLoss = getOdpLoss(odp.id);
+                let estimatedPower = (startPower - totalLoss).toFixed(2);
+
                 var icon = L.divIcon({
                     html: '<i class="fas fa-project-diagram text-[10px]"></i>',
                     className: 'icon-odp flex items-center justify-center',
@@ -196,11 +229,24 @@
 
                 L.marker([lat, lng], {icon: icon})
                     .addTo(map)
-                    .bindTooltip(`ODP: ${odp.name}`, {direction: 'top'})
-                    .bindPopup(`<div class="p-3">
+                    .bindTooltip(`ODP: ${odp.name} (${estimatedPower} dBm)`, {direction: 'top'})
+                    .bindPopup(`<div class="p-4 min-w-[200px]">
                         <p class="text-[10px] text-amber-500 font-black uppercase tracking-widest mb-1">Link Splitter</p>
-                        <h4 class="font-black text-slate-800 uppercase italic">${odp.name}</h4>
-                        <p class="text-[11px] text-slate-500 mt-2">Kapasitas: ${odp.capacity} Core</p>
+                        <h4 class="font-black text-slate-800 uppercase italic border-b pb-2 mb-2">${odp.name}</h4>
+                        <div class="space-y-2 mt-2">
+                            <div class="flex justify-between text-[11px]">
+                                <span class="text-slate-400">Tipe Splitter:</span>
+                                <span class="font-bold text-slate-700">${odp.splitter_type || '1:8'}</span>
+                            </div>
+                             <div class="flex justify-between text-[11px]">
+                                <span class="text-slate-400">Loss Splitter:</span>
+                                <span class="font-bold text-rose-500">-${LOSS_MAP[odp.splitter_type] || 10.5} dB</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-amber-50 p-2 rounded-lg border border-amber-100 mt-2">
+                                <span class="text-[10px] font-black text-amber-600 uppercase">Est. Power</span>
+                                <span class="text-sm font-black text-amber-700">${estimatedPower} dBm</span>
+                            </div>
+                        </div>
                     </div>`);
             });
 

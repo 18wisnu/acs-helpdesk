@@ -22,6 +22,7 @@ class SiteController extends Controller
             'ip_address' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'pon_power' => 'nullable|numeric',
             'description' => 'nullable|string',
         ]);
 
@@ -37,6 +38,7 @@ class SiteController extends Controller
             'ip_address' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'pon_power' => 'nullable|numeric',
             // tambahkan field lain jika ada (lokasi, dll)
         ]);
 

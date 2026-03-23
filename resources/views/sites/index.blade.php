@@ -51,6 +51,10 @@
                                 <label class="block text-sm font-medium text-gray-700">IP / URL (Misal: IP GenieACS)</label>
                                 <input type="text" name="ip_address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="Misal: 192.168.1.1">
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Output PON (dBm)</label>
+                                <input type="number" step="0.01" name="pon_power" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="Misal: 4.00" value="4.00">
+                            </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Latitude</label>
@@ -84,6 +88,7 @@
                                     <th class="px-4 py-3 border-b text-left font-semibold text-gray-700">Usaha</th>
                                     <th class="px-4 py-3 border-b text-left font-semibold text-gray-700">Lokasi</th>
                                     <th class="px-4 py-3 border-b text-left font-semibold text-gray-700">IP/URL Server</th>
+                                    <th class="px-4 py-3 border-b text-center font-semibold text-gray-700">Output PON</th>
                                     <th class="px-4 py-3 border-b text-center font-semibold text-gray-700">Aksi</th>
                                 </tr>
                             </thead>
@@ -106,6 +111,10 @@
                                         <td class="px-4 py-4 border-b">
                                             <span x-show="!editing" class="font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{{ $site->ip_address ?? '-' }}</span>
                                             <input x-show="editing" form="form-edit-{{ $site->id }}" type="text" name="ip_address" value="{{ $site->ip_address }}" class="border-gray-300 rounded text-sm w-full p-1 shadow-inner focus:ring-0">
+                                        </td>
+                                        <td class="px-4 py-4 border-b text-center">
+                                            <span x-show="!editing" class="font-bold text-amber-600">{{ $site->pon_power ?? '4.00' }}</span>
+                                            <input x-show="editing" form="form-edit-{{ $site->id }}" type="number" step="0.01" name="pon_power" value="{{ $site->pon_power }}" class="border-gray-300 rounded text-sm w-full p-1 shadow-inner focus:ring-0">
                                         </td>
                                         <td class="px-4 py-4 border-b text-center space-x-1">
                                             {{-- Form for editing --}}

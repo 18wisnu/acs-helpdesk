@@ -126,9 +126,21 @@
                                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama ODP (Identitas)</label>
                                     <input type="text" name="name" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 focus:border-amber-500 text-sm font-bold" placeholder="Contoh: ODP-TGP-01" required>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kapasitas (Port/Core)</label>
-                                    <input type="number" name="capacity" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 focus:border-amber-500 text-sm font-bold" placeholder="8" value="8" required>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kapasitas (Port)</label>
+                                        <input type="number" name="capacity" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 focus:border-amber-500 text-sm font-bold" placeholder="8" value="8" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipe Splitter</label>
+                                        <select name="splitter_type" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 text-sm font-bold">
+                                            <option value="1:2">Splitter 1:2 (-3.5 dB)</option>
+                                            <option value="1:4">Splitter 1:4 (-7.2 dB)</option>
+                                            <option value="1:8" selected>Splitter 1:8 (-10.5 dB)</option>
+                                            <option value="1:16">Splitter 1:16 (-13.8 dB)</option>
+                                            <option value="1:32">Splitter 1:32 (-17.5 dB)</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -184,9 +196,21 @@
                                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama ODP</label>
                                 <input type="text" name="name" x-model="selectedOdp.name" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 text-sm font-bold" required>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kapasitas</label>
-                                <input type="number" name="capacity" x-model="selectedOdp.capacity" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 text-sm font-bold" required>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kapasitas</label>
+                                    <input type="number" name="capacity" x-model="selectedOdp.capacity" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 text-sm font-bold" required>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipe Splitter</label>
+                                    <select name="splitter_type" x-model="selectedOdp.splitter_type" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 text-sm font-bold">
+                                        <option value="1:2">Splitter 1:2 (-3.5 dB)</option>
+                                        <option value="1:4">Splitter 1:4 (-7.2 dB)</option>
+                                        <option value="1:8">Splitter 1:8 (-10.5 dB)</option>
+                                        <option value="1:16">Splitter 1:16 (-13.8 dB)</option>
+                                        <option value="1:32">Splitter 1:32 (-17.5 dB)</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
