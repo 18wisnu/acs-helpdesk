@@ -11,7 +11,7 @@
         </div>
     </x-slot>
 
-    <div class="py-12" x-data="{ openCreateModal: false, openEditModal: false, selectedOdp: {} }">
+    <div class="py-12" x-data="{ openCreateModal: false, isEditOpen: false, selectedOdp: {} }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
             {{-- Tombol Pindah ke Sini --}}
@@ -81,7 +81,7 @@
                                 </td>
                                 <td class="px-8 py-6 text-right">
                                     <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button @click="openEditModal(@json($odp))" class="p-2 text-slate-400 hover:text-amber-500 transition">
+                                        <button @click="selectedOdp = {{ json_encode($odp) }}; isEditOpen = true" class="p-2 text-slate-400 hover:text-amber-500 transition">
                                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                         </button>
                                         <form action="{{ route('helpdesk.odps.destroy', $odp->id) }}" method="POST" onsubmit="return confirm('Hapus ODP ini?')">
@@ -182,12 +182,12 @@
         </div>
 
         {{-- Edit Modal --}}
-        <div x-show="openEditModal" style="display:none;" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div x-show="openEditModal" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
-            <div @click.away="openEditModal = false" x-show="openEditModal" x-transition.scale.95 class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-full">
+        <div x-show="isEditOpen" style="display:none;" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="isEditOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+            <div @click.away="isEditOpen = false" x-show="isEditOpen" x-transition.scale.95 class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-full">
                 <div class="bg-amber-600 p-6 text-white flex justify-between items-center">
                     <h3 class="font-black uppercase italic tracking-tight text-lg">Edit Data ODP</h3>
-                    <button @click="openEditModal = false" class="text-white/60 hover:text-white text-2xl leading-none">&times;</button>
+                    <button @click="isEditOpen = false" class="text-white/60 hover:text-white text-2xl leading-none">&times;</button>
                 </div>
                 <div class="p-8 overflow-y-auto">
                     <form :action="`/helpdesk/odps/update/${selectedOdp.id}`" method="POST" class="space-y-5">
@@ -243,7 +243,7 @@
                             </div>
                         </div>
                         <div class="pt-4 flex justify-end gap-3">
-                            <button type="button" @click="openEditModal = false" class="px-6 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition">Batal</button>
+                            <button type="button" @click="isEditOpen = false" class="px-6 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition">Batal</button>
                             <button type="submit" class="bg-slate-900 text-white px-8 py-2.5 rounded-xl font-black shadow-lg hover:bg-slate-800 transition-all">Update Data</button>
                         </div>
                     </form>
