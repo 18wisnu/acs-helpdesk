@@ -12,10 +12,19 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Route darurat untuk jalankan migrasi via URL
+// Route darurat untuk jalankan migrasi & clear cache di Server
 Route::get('/run-migrate', function () {
-    Artisan::call('migrate', ['--force' => true]);
-    return Artisan::output();
+    try {
+        // Paksa bersihkan cache konfigurasi & route
+        Artisan::call('optimize:clear');
+        
+        // Jalankan migrasi secara paksa
+        Artisan::call('migrate', ['--force' => true]);
+        
+        return "<h3>Update Berhasil!</h3><pre>" . Artisan::output() . "</pre><br><a href='/dashboard'>Kembali ke Dashboard</a>";
+    } catch (\Exception $e) {
+        return "<h3>Update Gagal!</h3><p>Error: " . $e->getMessage() . "</p>";
+    }
 });
 
 // ------------------------------------------------------------------
