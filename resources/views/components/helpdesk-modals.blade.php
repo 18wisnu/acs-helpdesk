@@ -44,22 +44,48 @@
                                 <textarea name="address" rows="2" class="w-full rounded-lg border-slate-300 focus:ring-emerald-500 text-sm">{{ $device->customer->address ?? '' }}</textarea>
                             </div>
 
-                            {{-- INPUT KOORDINAT --}}
-                            <div class="grid grid-cols-2 gap-3 mb-3">
+                             {{-- INPUT KOORDINAT --}}
+                             <div class="grid grid-cols-2 gap-3 mb-3">
+                                 <div>
+                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Latitude</label>
+                                     <input type="text" name="latitude" value="{{ $device->customer->latitude ?? '' }}" placeholder="-0.0263" class="w-full rounded-lg border-slate-300 focus:ring-emerald-500 text-sm">
+                                 </div>
+                                 <div>
+                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Longitude</label>
+                                     <input type="text" name="longitude" value="{{ $device->customer->longitude ?? '' }}" placeholder="109.3425" class="w-full rounded-lg border-slate-300 focus:ring-emerald-500 text-sm">
+                                 </div>
+                             </div>
+
+                             {{-- INPUT SITE & ODP (Baru di Form 1) --}}
+                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Latitude</label>
-                                    <input type="text" name="latitude" value="{{ $device->customer->latitude ?? '' }}" placeholder="-0.0263" class="w-full rounded-lg border-slate-300 focus:ring-emerald-500 text-sm">
+                                    <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Pilih Site (OLT)</label>
+                                    <select name="site_id" class="w-full rounded-lg border-slate-300 focus:ring-emerald-500 text-sm font-medium">
+                                        <option value="">-- Pilih Site --</option>
+                                        @foreach($sites as $site)
+                                            <option value="{{ $site->id }}" {{ $device->site_id == $site->id ? 'selected' : '' }}>
+                                                {{ $site->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Longitude</label>
-                                    <input type="text" name="longitude" value="{{ $device->customer->longitude ?? '' }}" placeholder="109.3425" class="w-full rounded-lg border-slate-300 focus:ring-emerald-500 text-sm">
+                                    <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Pilih ODP</label>
+                                    <select name="odp_id" class="w-full rounded-lg border-slate-300 focus:ring-emerald-500 text-sm font-medium">
+                                        <option value="">-- Pilih ODP --</option>
+                                        @foreach($odps as $odp)
+                                            <option value="{{ $odp->id }}" {{ $device->odp_id == $odp->id ? 'selected' : '' }}>
+                                                {{ $odp->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                            </div>
-                            
-                            <div class="flex justify-end">
-                                <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-lg bg-emerald-600 px-4 py-2 sm:py-1.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 transition">Simpan & Buat Akun Client</button>
-                            </div>
-                        </form>
+                             </div>
+                             
+                             <div class="flex justify-end pt-2">
+                                 <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-lg bg-emerald-600 px-4 py-2 sm:py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 transition">Simpan Data & Akun</button>
+                             </div>
+                         </form>
                     </div>
 
                     {{-- Form 2: Pindah Site & ODP --}}
@@ -126,13 +152,25 @@
                         @csrf
                         <input type="hidden" name="genieacs_id" value="{{ $device->genieacs_id }}">
                         
-                        <div class="mb-4">
-                            <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">Nama SSID Baru</label>
-                            <input type="text" name="ssid" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required>
-                        </div>
-                        <div class="mb-5">
-                            <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">Password Baru <span class="font-normal text-slate-400 text-xs">(min. 8)</span></label>
-                            <input type="text" name="password" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required minlength="8">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">SSID 1 (Utama)</label>
+                                <input type="text" name="ssid" value="{{ $device->ssid }}" class="w-full rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-bold" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">SSID 2 (Voucher/Bridge)</label>
+                                <input type="text" name="ssid_2" value="{{ $device->ssid_2 }}" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 focus:border-amber-500 text-sm font-bold">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Password 1</label>
+                                    <input type="text" name="password" placeholder="Min. 8 Karakter" class="w-full rounded-xl border-slate-200 focus:ring-indigo-500 text-sm font-mono" required minlength="8">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Password 2</label>
+                                    <input type="text" name="password_2" placeholder="Kosongkan jika sama" class="w-full rounded-xl border-slate-200 focus:ring-amber-500 text-sm font-mono">
+                                </div>
+                            </div>
                         </div>
                         <div class="flex flex-col sm:flex-row-reverse gap-2 sm:gap-3 mt-5">
                             <button type="submit" class="w-full sm:w-auto justify-center rounded-lg bg-indigo-600 px-4 py-2.5 sm:py-2 text-sm font-bold text-white shadow-sm hover:bg-indigo-500 transition">Terapkan Modem</button>

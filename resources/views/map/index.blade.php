@@ -305,18 +305,25 @@
 
                 // Connection Line: ODP -> ONT
                 if (dev.odp_id && odpMarkers[dev.odp_id]) {
+                    // Logic Offline: Rx Power kosong, 0, atau di bawah -30dBm
+                    let rxVal = parseFloat(dev.rx_power);
+                    let isOffline = (!dev.rx_power || dev.rx_power == '-' || rxVal == 0 || rxVal <= -30);
+
                     L.polyline([odpMarkers[dev.odp_id], currentCoord], {
-                        color: '#10b981',
+                        color: isOffline ? '#ef4444' : '#10b981', // Merah jika offline, Hijau jika online
                         weight: 2,
                         opacity: 0.9,
-                        className: 'dist-line'
+                        className: isOffline ? '' : 'dist-line'  // Animasi hanya jika online
                     }).addTo(map);
                 } else if (dev.site_id && siteMarkers[dev.site_id]) {
+                    let rxVal = parseFloat(dev.rx_power);
+                    let isOffline = (!dev.rx_power || dev.rx_power == '-' || rxVal == 0 || rxVal <= -30);
+
                     L.polyline([siteMarkers[dev.site_id], currentCoord], {
-                        color: '#6366f1',
+                        color: isOffline ? '#ef4444' : '#6366f1',
                         weight: 2,
                         opacity: 0.7,
-                        className: 'dist-line'
+                        className: isOffline ? '' : 'dist-line'
                     }).addTo(map);
                 }
             });

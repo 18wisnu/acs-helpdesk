@@ -211,6 +211,18 @@
                             Reboot Modem
                         </button>
                     </form>
+
+                    {{-- Tombol Zero Touch Provisioning (ZTP) - Admin Only --}}
+                    @if(auth()->user()->role === 'admin' || auth()->user()->role === 'owner')
+                    <form action="{{ route('helpdesk.provision', $device->id) }}" method="POST" onsubmit="return confirm('ZTP akan mengatur SSID & PPPoE ke default. Lanjutkan?')" class="w-full sm:w-auto">
+                        @csrf
+                        <button type="submit" class="w-full sm:w-auto flex justify-center items-center gap-3 bg-slate-800 hover:bg-slate-900 text-white px-6 py-3.5 sm:py-4 rounded-xl text-sm sm:text-base font-bold shadow-md transition-all transform hover:-translate-y-0.5 active:scale-95">
+                            <svg class="w-5 h-5 flex-shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Jalankan ZTP
+                        </button>
+                    </form>
+                    @endif
+
                 </div>
 
                 {{-- Modal Ganti Wi-Fi --}}
@@ -226,12 +238,22 @@
                                 @csrf
                                 <input type="hidden" name="genieacs_id" value="{{ $device->genieacs_id }}">
                                 <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-1.5">Nama Wi-Fi (SSID)</label>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1.5">SSID 1 (PPPoE / Utama)</label>
                                     <input type="text" name="ssid" value="{{ $info['ssid'] !== '-' ? $info['ssid'] : '' }}" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-1.5">Password Baru</label>
-                                    <input type="text" name="password" placeholder="Minimal 8 karakter" minlength="8" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1.5">SSID 2 (Bridge / Voucher)</label>
+                                    <input type="text" name="ssid_2" value="{{ $info['ssid_2'] !== '-' ? $info['ssid_2'] : '' }}" class="w-full rounded-lg border-slate-300 focus:ring-amber-500 focus:border-amber-500 text-sm">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-700 mb-1.5">Password 1</label>
+                                        <input type="text" name="password" placeholder="Minimal 8 karakter" minlength="8" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-700 mb-1.5">Password 2</label>
+                                        <input type="text" name="password_2" placeholder="Kosongkan jika sama" class="w-full rounded-lg border-slate-300 focus:ring-amber-500 focus:border-amber-500 text-sm">
+                                    </div>
                                 </div>
                                 <div class="pt-2 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
                                     <button type="button" @click="openWifi = false" class="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-slate-500 hover:bg-slate-50 rounded-lg font-semibold border border-transparent hover:border-slate-200 transition">Batal</button>
@@ -272,6 +294,41 @@
                             </form>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {{-- Connected Devices Section (Admin/Owner) --}}
+            <div class="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm overflow-hidden mb-8">
+                <div class="bg-slate-50 px-5 sm:px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                    <h4 class="font-bold text-slate-800 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        Daftar Perangkat Terhubung
+                    </h4>
+                    <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-xs font-black">{{ count($info['hosts']) }}</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50/50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama Perangkat</th>
+                                <th class="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">MAC Address</th>
+                                <th class="px-6 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-indigo-600">IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 italic">
+                            @forelse($info['hosts'] as $host)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="px-6 py-4 text-sm font-bold text-slate-700">{{ $host['name'] }}</td>
+                                <td class="px-6 py-4 text-xs font-mono text-slate-500">{{ $host['mac'] }}</td>
+                                <td class="px-6 py-4 text-xs font-mono font-bold text-indigo-600">{{ $host['ip'] }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="3" class="px-6 py-10 text-center text-slate-400 text-sm font-medium">Tidak ada perangkat aktif terdeteksi saat ini. Klik 'Diagnosis Cepat' untuk memperbarui.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

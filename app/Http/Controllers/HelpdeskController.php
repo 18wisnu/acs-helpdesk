@@ -134,36 +134,8 @@ class HelpdeskController extends Controller
                         $liveInfo['temp']     = $this->getVPFirst($acsData, ['gettemp', 'Suhu'], '-');
                         $liveInfo['pon']      = $this->getVPFirst($acsData, ['getponmode', 'PonMode'], 'GPON');
                         
-                        // Parse Connected Devices (Agresif)
-                        $possiblePaths = [
-                            'InternetGatewayDevice.LANDevice.1.Hosts.Host',
-                            'InternetGatewayDevice.Hosts.Host',
-                            'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.AssociatedDevice',
-                            'InternetGatewayDevice.WLANConfiguration.1.AssociatedDevice',
-                            'InternetGatewayDevice.WANDevice.1.WANDSLInterfaceConfig.AssociatedDevice',
-                        ];
-                        
-                        foreach ($possiblePaths as $path) {
-                            $found = data_get($acsData, $path, []);
-                            if (!empty($found) && is_array($found)) {
-                                foreach ($found as $key => $h) {
-                                    if (!is_array($h) || str_starts_with((string)$key, '_')) continue;
-
-                                    $mac = data_get($h, 'MACAddress._value', data_get($h, 'MACAddress', ''));
-                                    // Untuk AssociatedDevice, MAC biasanya langsung di string atau di MACAddress._value
-                                    if (!$mac && isset($h['_value'])) $mac = $h['_value']; 
-
-                                    if ($mac) {
-                                        $liveInfo['hosts'][] = [
-                                            'name' => data_get($h, 'HostName._value', data_get($h, 'HostName', 'Device-' . $key)),
-                                            'mac'  => $mac,
-                                            'ip'   => data_get($h, 'IPAddress._value', data_get($h, 'IPAddress', '-')),
-                                        ];
-                                    }
-                                }
-                                if (!empty($liveInfo['hosts'])) break;
-                            }
-                        }
+                        // Parse Connected Devices (Agresif via Helper)
+                        $liveInfo['hosts'] = $this->parseConnectedHosts($acsData);
 
                         // Jika detail tetap kosong tapi jumlah di DB ada 
                         if (empty($liveInfo['hosts']) && $device->active_devices > 0) {
@@ -229,6 +201,7 @@ class HelpdeskController extends Controller
             'phone'     => 'required|string|max:30',
             'email'     => 'nullable|email|max:255',
             'site_id'   => 'nullable|exists:sites,id',
+            'odp_id'    => 'nullable|exists:odps,id',
             'latitude'  => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
         ]);
@@ -368,12 +341,12 @@ class HelpdeskController extends Controller
             ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase", $request->password, "xsd:string"],
             ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.PreSharedKey", $request->password, "xsd:string"],
             
-            // Support 5G (Indeks 2 atau 5 biasanya untuk 5G)
+            // Support 5G (Indeks 2 atau 4 atau 5 biasanya untuk 5G / Multi SSID)
             ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.SSID", $request->ssid, "xsd:string"],
             ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.KeyPassphrase", $request->password, "xsd:string"],
             
-            ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.SSID", $request->ssid, "xsd:string"],
-            ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.KeyPassphrase", $request->password, "xsd:string"],
+            ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.SSID", $request->ssid_2 ?? $request->ssid, "xsd:string"],
+            ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.KeyPassphrase", $request->password_2 ?? $request->password, "xsd:string"],
             
             // Virtual Parameter (jika ada script di GenieACS)
             ["VirtualParameters.WlanPassword", $request->password, "xsd:string"],
@@ -450,17 +423,23 @@ class HelpdeskController extends Controller
                 'VirtualParameters.RXPower',
                 'VirtualParameters.Redaman',
                 'VirtualParameters.WlanSSID',
+                'VirtualParameters.WlanSSID2',
                 'VirtualParameters.IPPPPOE',
                 'VirtualParameters.IPTR069',
                 'VirtualParameters.SN',
                 'VirtualParameters.Model',
+                'VirtualParameters.Brand',
                 'VirtualParameters.activedevices',
+                'InternetGatewayDevice.DeviceInfo.Manufacturer',
                 'InternetGatewayDevice.DeviceInfo.ModelName',
                 'InternetGatewayDevice.DeviceInfo.SerialNumber',
+                'Device.DeviceInfo.Manufacturer',
                 'Device.DeviceInfo.ModelName',
                 'Device.DeviceInfo.SerialNumber',
                 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID',
+                'InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.SSID',
                 'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress',
+                '_lastInform'
             ]);
 
             $response = Http::timeout(30)->get("{$genieAcsUrl}/devices/?projection={$projection}");
@@ -486,7 +465,7 @@ class HelpdeskController extends Controller
                     }
 
                     // --- CARI BRAND / MODEL ---
-                    $brand = $this->getVP($device, 'Model');
+                    $brand = $this->getVPFirst($device, ['Model', 'Brand', 'Manufacturer', 'Maker']);
                     if ($brand === '-') {
                         $brand = data_get($device, 'InternetGatewayDevice.DeviceInfo.ModelName._value')
                               ?? data_get($device, 'Device.DeviceInfo.ModelName._value')
@@ -496,16 +475,21 @@ class HelpdeskController extends Controller
                     $activeDev = $this->getVP($device, 'activedevices', '0');
                     $rxPower   = $this->getVPFirst($device, ['RXPower', 'Redaman', 'rxpower', 'Redaman_RX', 'rx_power']);
 
+                    $ssid2 = $this->getVP($device, 'WlanSSID2', data_get($device, 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.SSID._value', '-'));
+                    $lastInform = data_get($device, '_lastInform');
+
                     Device::updateOrCreate(
                         ['genieacs_id' => $device['_id']],
                         [
                             'brand'          => $brand,
                             'sn'             => $sn,
                             'ssid'           => $ssid,
+                            'ssid_2'         => $ssid2,
                             'ip_pppoe'       => $ipPppoe,
                             'ip_tr069'       => $ipTr069,
                             'active_devices' => is_numeric($activeDev) ? $activeDev : '0',
                             'rx_power'       => $rxPower,
+                            'last_inform'    => $lastInform ? \Carbon\Carbon::parse($lastInform) : null,
                         ]
                     );
                     $count++;
@@ -525,14 +509,22 @@ class HelpdeskController extends Controller
      */
     public function cleanupDiscovery()
     {
-        $count = Device::where('brand', 'Unknown')
-            ->orWhere('sn', '-')
-            ->orWhere('sn', '')
-            ->orWhereNull('sn')
-            ->orWhereNull('brand')
-            ->delete();
+        // 1. Discovery dasar (tanpa SN atau Brand Unknown)
+        $basic = Device::query()->where(function($q) {
+            $q->where('brand', '=', 'Unknown')
+              ->orWhere('sn', '=', '-')
+              ->orWhere('sn', '=', '')
+              ->orWhereNull('sn')
+              ->orWhereNull('brand');
+        })->whereNull('customer_id'); // Pastikan tidak hapus yang sudah ada pelanggan
 
-        return back()->with('success', "Pembersihan Selesai! {$count} perangkat discovery berhasil dihapus.");
+        // 2. Perangkat lama (tidak inform > 30 hari)
+        $old = Device::query()->where('last_inform', '<', now()->subDays(30)->toDateTimeString())
+                     ->whereNull('customer_id');
+
+        $count = $basic->delete() + $old->delete();
+
+        return back()->with('success', "Pembersihan Pintar Selesai! {$count} perangkat sampah/discovery berhasil dihapus.");
     }
 
     /**
@@ -545,10 +537,20 @@ class HelpdeskController extends Controller
 
         try {
             $query      = json_encode(["_id" => $device->genieacs_id]);
-            $projection = 'VirtualParameters,' .
-                          'InternetGatewayDevice.DeviceInfo.UpTime,' .
-                          'Device.DeviceInfo.UpTime,' .
-                          '_lastInform,_deviceId';
+            
+            // Perbaiki Projection: Tambahkan path untuk daftar host/perangkat terhubung
+            $projection = implode(',', [
+                'VirtualParameters',
+                'InternetGatewayDevice.DeviceInfo.UpTime',
+                'Device.DeviceInfo.UpTime',
+                'InternetGatewayDevice.LANDevice.1.Hosts.Host',
+                'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.AssociatedDevice',
+                'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.AssociatedDevice',
+                'InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.AssociatedDevice',
+                'InternetGatewayDevice.WLANConfiguration.1.AssociatedDevice',
+                '_lastInform',
+                '_deviceId'
+            ]);
 
             $response = Http::timeout(15)->get(
                 "{$genieAcsUrl}/devices/?query=" . urlencode($query) .
@@ -575,8 +577,8 @@ class HelpdeskController extends Controller
                     }
 
                     $info = [
-                        'model'          => $this->getVP($liveData, 'Model', $device->brand ?? 'Unknown'),
-                        'sn'             => $this->getVPFirst($liveData, ['getSerialNumber', 'SN'], $device->sn ?? '-'),
+                        'model'          => $this->getVPFirst($liveData, ['Model', 'Brand', 'Manufacturer', 'Maker'], $device->brand ?? 'Unknown'),
+                        'sn'             => $this->getVPFirst($liveData, ['getSerialNumber', 'SN', 'SerialNumber'], $device->sn ?? '-'),
                         'ip_tr069'       => $this->getVPFirst($liveData, ['IPTR069', 'iptr069'], $device->ip_tr069 ?? '-'),
                         'ip_pppoe'       => $this->getVPFirst($liveData, ['pppoeIP', 'IPPPPOE'], $device->ip_pppoe ?? 'Offline'),
                         'ssid'           => $this->getVPFirst($liveData, ['WlanSSID', 'ssid'], $device->ssid ?? '-'),
@@ -585,11 +587,14 @@ class HelpdeskController extends Controller
                         'suhu'           => $this->getVPFirst($liveData, ['gettemp', 'Suhu']),
                         'pppoe_user'     => $this->getVPFirst($liveData, ['pppoeUsername', 'pppoeUsername2']),
                         'pon_mac'        => $this->getVP($liveData, 'PonMac'),
+                        'pon_mac_2'      => $this->getVP($liveData, 'PonMac2'),
                         'pon_mode'       => $this->getVPFirst($liveData, ['getponmode', 'PonMode']),
                         'uptime'         => (fn($vp) => $vp !== '-' ? $vp : $uptimeFallback)(
                                                  $this->getVPFirst($liveData, ['Uptime_Human', 'UptimeHuman'])
                                              ),
                         'last_inform'    => data_get($liveData, '_lastInform'),
+                        'ssid_2'         => $this->getVPFirst($liveData, ['WlanSSID2']),
+                        'hosts'          => $this->parseConnectedHosts($liveData),
                     ];
 
                     $vpDebug = $this->getAvailableVPs($liveData);
@@ -637,7 +642,6 @@ class HelpdeskController extends Controller
     {
         $device      = Device::findOrFail($id);
         $genieAcsUrl = config('services.genieacs.url');
-
         try {
             $encodedId = rawurlencode($device->genieacs_id);
             // Hapus ?connection_request agar tidak blocking/timeout
@@ -652,6 +656,88 @@ class HelpdeskController extends Controller
             return back()->with('error', 'Gagal mengirim perintah diagnostik.');
         } catch (\Exception $e) {
             return back()->with('error', 'ACS tidak merespons: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Parse Connected Devices (Helper agar bisa dipakai di Client & Admin)
+     */
+    private function parseConnectedHosts($acsData): array
+    {
+        $hosts = [];
+        $possiblePaths = [
+            'InternetGatewayDevice.LANDevice.1.Hosts.Host',
+            'InternetGatewayDevice.Hosts.Host',
+            'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.AssociatedDevice',
+            'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.AssociatedDevice',
+            'InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.AssociatedDevice',
+            'InternetGatewayDevice.WLANConfiguration.1.AssociatedDevice',
+            'InternetGatewayDevice.WANDevice.1.WANDSLInterfaceConfig.AssociatedDevice',
+        ];
+
+        foreach ($possiblePaths as $path) {
+            $found = data_get($acsData, $path, []);
+            if (!empty($found) && is_array($found)) {
+                foreach ($found as $uniqueKey => $h) {
+                    if (!is_array($h) || str_starts_with((string)$uniqueKey, '_')) continue;
+
+                    $mac = data_get($h, 'MACAddress._value', data_get($h, 'MACAddress', ''));
+                    // Untuk AssociatedDevice, MAC biasanya langsung di string atau di MACAddress._value
+                    if (!$mac && isset($h['_value'])) $mac = $h['_value']; 
+
+                    if ($mac) {
+                        $hosts[] = [
+                            'name' => data_get($h, 'HostName._value', data_get($h, 'HostName', 'Device-' . $uniqueKey)),
+                            'mac'  => $mac,
+                            'ip'   => data_get($h, 'IPAddress._value', data_get($h, 'IPAddress', '-')),
+                        ];
+                    }
+                }
+                if (!empty($hosts)) break;
+            }
+        }
+        return $hosts;
+    }
+
+    /**
+     * Feature: Zero Touch Provisioning (ZTP)
+     * Otomatisasi konfigurasi untuk modem baru.
+     */
+    public function provision($id)
+    {
+        $device = Device::findOrFail($id);
+        $genieAcsUrl = config('services.genieacs.url');
+        
+        // Logika ZTP: Push konfigurasi dasar (SSID & PPPoE Placeholder)
+        // Username PPPoE default menggunakan "customer_" + SN (contoh)
+        $defaultPppoeUser = "cust_" . strtolower(substr($device->sn, -6));
+        $defaultSsid = "WIFI-" . strtoupper(substr($device->sn, -4));
+
+        $payload = [
+            "name"            => "setParameterValues",
+            "parameterValues" => [
+                ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID", $defaultSsid, "xsd:string"],
+                ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase", "12345678", "xsd:string"],
+                ["InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username", $defaultPppoeUser, "xsd:string"],
+                ["InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Password", "password", "xsd:string"],
+                ["VirtualParameters.WlanSSID", $defaultSsid, "xsd:string"],
+                ["VirtualParameters.WlanPassword", "12345678", "xsd:string"],
+            ]
+        ];
+
+        try {
+            $encodedId = rawurlencode($device->genieacs_id);
+            $response = Http::timeout(15)->post("{$genieAcsUrl}/devices/{$encodedId}/tasks", $payload);
+
+            if ($response->successful()) {
+                // Tambahkan refresh object agar data terbaru langsung ditarik
+                Http::timeout(5)->post("{$genieAcsUrl}/devices/{$encodedId}/tasks", ['name' => 'refreshObject', 'objectName' => 'InternetGatewayDevice']);
+
+                return back()->with('success', "ZTP terpantik untuk {$device->sn}! SSID diatur ke '{$defaultSsid}' dan PPPoE Placeholder dibuat. Menunggu modem online...");
+            }
+            return back()->with('error', 'Gagal memantik ZTP. ACS tidak merespons.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Sistem Gagal: ' . $e->getMessage());
         }
     }
 }

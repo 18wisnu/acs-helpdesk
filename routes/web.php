@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Detail & Reboot modem
         Route::get('/device/{id}', [HelpdeskController::class, 'show'])->name('detail');
         Route::post('/device/{id}/reboot', [HelpdeskController::class, 'reboot'])->name('reboot');
+        Route::post('/device/{id}/provision', [HelpdeskController::class, 'provision'])->name('provision');
         
         // Update Site pada Device
         Route::post('/update-site', [HelpdeskController::class, 'updateSite'])->name('update-site');
